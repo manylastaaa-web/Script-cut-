@@ -20,30 +20,29 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 def analyze_script(script_text):
     client = Groq(api_key=GROQ_API_KEY)
-    prompt = f"""You are a professional video editor AI. Analyze this YouTube script and return ONLY a JSON object (no markdown, no backticks).
-
-Script:
-{script_text}
+    prompt = """You are a professional video editor AI. Analyze this YouTube script and return ONLY a JSON object (no markdown, no backticks).
 
 Return this exact JSON structure:
-{{
+{
   "scenes": [
-    {{
+    {
       "num": 1,
       "text": "<narration text for this scene>",
       "search_keyword": "<single english keyword for Pexels>",
-      "duration_sec": <estimated seconds as integer>
-    }}
+      "duration_sec": 5
+    }
   ],
-  "music_mood": "<happy|sad|dramatic|calm|energetic>",
-  "voice_style": "<neutral|excited|serious>"
-}}
+  "music_mood": "dramatic",
+  "voice_style": "serious"
+}
 
 Rules:
 - Split into 5-15 scenes based on topic shifts
-- search_keyword must be simple English (1-2 words max)
+- search_keyword must be simple English 1-2 words max
 - duration_sec between 3 and 8 seconds per scene
-- text is the narration for that scene only"""
+- text is the narration for that scene only
+
+Script: """ + script_text
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
@@ -58,7 +57,8 @@ def download_pexels_clip(keyword, duration, output_path):
     headers = {"Authorization": PEXELS_API_KEY}
     params = {"query": keyword, "per_page": 5, "min_duration": duration}
     r = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
-    data = r.json(model if not data.get("videos"):
+    data = r.json()
+    if not data.get("videos"):
         params["query"] = "nature"
         r = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
         data = r.json()
@@ -73,7 +73,7 @@ def download_pexels_clip(keyword, duration, output_path):
 
 def generate_voice(text, output_path):
     voice_id = "21m00Tcm4TlvDq8ikWAM"
-    url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+    url = "https://api.elevenlabs.io/v1/text-to-speech/" + voice_id
     headers = {
         "xi-api-key": ELEVENLABS_API_KEY,
         "Content-Type": "application/json"
@@ -100,30 +100,30 @@ def trim_clip(input_path, duration, output_path):
     return output_path
 
 def merge_video(session_id, scenes_data, voice_paths, clip_paths):
-    concat_file = TEMP_DIR / f"{session_id}_concat.txt"
+    concat_file = TEMP_DIR / (session_id + "_concat.txt")
     trimmed_paths = []
     for i, (scene, clip_path) in enumerate(zip(scenes_data, clip_paths)):
-        trimmed = TEMP_DIR / f"{session_id}_trimmed_{i}.mp4"
+        trimmed = TEMP_DIR / (session_id + "_trimmed_" + str(i) + ".mp4")
         trim_clip(clip_path, scene["duration_sec"], trimmed)
         trimmed_paths.append(trimmed)
     with open(concat_file, "w") as f:
         for p in trimmed_paths:
-            f.write(f"file '{p.absolute()}'\n")
-    concat_output = TEMP_DIR / f"{session_id}_concat.mp4"
+            f.write("file '" + str(p.absolute()) + "'\n")
+    concat_output = TEMP_DIR / (session_id + "_concat.mp4")
     subprocess.run([
         "ffmpeg", "-y", "-f", "concat", "-safe", "0",
         "-i", str(concat_file), "-c", "copy", str(concat_output)
     ], check=True, capture_output=True)
-    voice_concat_file = TEMP_DIR / f"{session_id}_voice_concat.txt"
+    voice_concat_file = TEMP_DIR / (session_id + "_voice_concat.txt")
     with open(voice_concat_file, "w") as f:
         for p in voice_paths:
-            f.write(f"file '{Path(p).absolute()}'\n")
-    voice_merged = TEMP_DIR / f"{session_id}_voice.mp3"
+            f.write("file '" + str(Path(p).absolute()) + "'\n")
+    voice_merged = TEMP_DIR / (session_id + "_voice.mp3")
     subprocess.run([
         "ffmpeg", "-y", "-f", "concat", "-safe", "0",
         "-i", str(voice_concat_file), "-c", "copy", str(voice_merged)
     ], check=True, capture_output=True)
-    final_output = OUTPUT_DIR / f"{session_id}_final.mp4"
+    final_output = OUTPUT_DIR / (session_id + "_final.mp4")
     subprocess.run([
         "ffmpeg", "-y",
         "-i", str(concat_output),
@@ -150,10 +150,10 @@ def generate():
         voice_paths = []
         clip_paths = []
         for i, scene in enumerate(scenes):
-            clip_path = TEMP_DIR / f"{session_id}_clip_{i}.mp4"
+            clip_path = TEMP_DIR / (session_id + "_clip_" + str(i) + ".mp4")
             download_pexels_clip(scene["search_keyword"], scene["duration_sec"], clip_path)
             clip_paths.append(clip_path)
-            voice_path = TEMP_DIR / f"{session_id}_voice_{i}.mp3"
+            voice_path = TEMP_DIR / (session_id + "_voice_" + str(i) + ".mp3")
             generate_voice(scene["text"], voice_path)
             voice_paths.append(voice_path)
         final_video = merge_video(session_id, scenes, voice_paths, clip_paths)
@@ -161,14 +161,14 @@ def generate():
             "success": True,
             "video_id": session_id,
             "scenes_count": len(scenes),
-            "download_url": f"/download/{session_id}"
+            "download_url": "/download/" + session_id
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route("/download/<session_id>")
 def download(session_id):
-    path = OUTPUT_DIR / f"{session_id}_final.mp4"
+    path = OUTPUT_DIR / (session_id + "_final.mp4")
     if path.exists():
         return send_file(path, as_attachment=True, download_name="scriptcut_video.mp4")
     return jsonify({"error": "الفيديو مش موجود"}), 404
