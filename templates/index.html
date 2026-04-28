@@ -1,1 +1,152 @@
-templates/index.html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScriptCut AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #e8ff47;
+    --accent2: #ff4757;
+    --text: #e8e8f0;
+    --muted: #555570;
+    --card: #13131c;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans Arabic', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .container { max-width: 700px; width: 100%; position: relative; z-index: 1; }
+  header { text-align: center; margin-bottom: 40px; }
+  .logo { font-family: 'Syne', sans-serif; font-size: 12px; letter-spacing: 4px; color: var(--accent); text-transform: uppercase; display: block; margin-bottom: 12px; }
+  h1 { font-family: 'Syne', sans-serif; font-size: clamp(28px, 6vw, 48px); font-weight: 800; line-height: 1.1; }
+  h1 span { color: var(--accent); }
+  .subtitle { color: var(--muted); font-size: 14px; margin-top: 8px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; position: relative; overflow: hidden; }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), transparent); }
+  .label { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; display: block; }
+  textarea { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'IBM Plex Sans Arabic', sans-serif; font-size: 14px; line-height: 1.8; padding: 16px; resize: vertical; min-height: 280px; outline: none; transition: border-color 0.2s; direction: ltr; text-align: left; }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--muted); }
+  .btn { width: 100%; margin-top: 16px; background: var(--accent); color: #0a0a0f; border: none; border-radius: 10px; padding: 16px; font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.2s; letter-spacing: 1px; }
+  .btn:hover { background: #d4eb30; transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .progress-section { display: none; margin-top: 24px; }
+  .progress-section.visible { display: block; }
+  .progress-bar-bg { background: var(--bg); border: 1px solid var(--border); border-radius: 100px; height: 8px; overflow: hidden; margin-bottom: 12px; }
+  .progress-bar { height: 100%; background: var(--accent); border-radius: 100px; transition: width 0.5s ease; width: 0%; }
+  .progress-steps { display: flex; flex-direction: column; gap: 8px; }
+  .step { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); transition: color 0.3s; }
+  .step.active { color: var(--text); }
+  .step.done { color: var(--accent); }
+  .step-icon { font-size: 16px; width: 20px; text-align: center; }
+  .result-section { display: none; margin-top: 24px; }
+  .result-section.visible { display: block; }
+  .result-card { background: linear-gradient(135deg, rgba(232,255,71,0.06), transparent); border: 1px solid rgba(232,255,71,0.25); border-radius: 12px; padding: 24px; text-align: center; }
+  .result-icon { font-size: 48px; margin-bottom: 12px; }
+  .result-title { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--accent); margin-bottom: 6px; }
+  .result-desc { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+  .download-btn { display: inline-block; background: var(--accent); color: #0a0a0f; border: none; border-radius: 10px; padding: 14px 32px; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; text-decoration: none; transition: all 0.2s; letter-spacing: 1px; }
+  .download-btn:hover { background: #d4eb30; }
+  .error-box { background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.3); border-radius: 10px; padding: 14px; color: var(--accent2); font-size: 13px; text-align: center; margin-top: 16px; display: none; }
+  .error-box.visible { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <span class="logo">✦ ScriptCut AI</span>
+    <h1>سكريبتك ←<br><span>فيديو يوتيوب</span></h1>
+    <p class="subtitle">الصق السكريبت — هيطلعلك فيديو MP4 جاهز للرفع</p>
+  </header>
+  <div class="card">
+    <span class="label">✦ السكريبت</span>
+    <textarea id="scriptInput" placeholder="الصق سكريبت الفيديو هنا..."></textarea>
+    <button class="btn" id="generateBtn" onclick="generateVideo()">⚡ اعمل الفيديو</button>
+  </div>
+  <div class="error-box" id="errorBox"></div>
+  <div class="progress-section" id="progressSection">
+    <div class="card">
+      <span class="label">✦ جاري الإنتاج</span>
+      <div class="progress-bar-bg"><div class="progress-bar" id="progressBar"></div></div>
+      <div class="progress-steps">
+        <div class="step" id="step1"><span class="step-icon">🧠</span> تحليل السكريبت وتقسيمه لمشاهد</div>
+        <div class="step" id="step2"><span class="step-icon">🎬</span> تحميل مقاطع الفيديو من Pexels</div>
+        <div class="step" id="step3"><span class="step-icon">🎙️</span> توليد الصوت بالذكاء الاصطناعي</div>
+        <div class="step" id="step4"><span class="step-icon">✂️</span> دمج الفيديو والصوت</div>
+        <div class="step" id="step5"><span class="step-icon">✅</span> الفيديو جاهز!</div>
+      </div>
+    </div>
+  </div>
+  <div class="result-section" id="resultSection">
+    <div class="result-card">
+      <div class="result-icon">🎥</div>
+      <div class="result-title">الفيديو جاهز!</div>
+      <div class="result-desc" id="resultDesc"></div>
+      <a class="download-btn" id="downloadBtn" href="#">⬇️ تحميل الفيديو</a>
+    </div>
+  </div>
+</div>
+<script>
+async function generateVideo() {
+  const script = document.getElementById('scriptInput').value.trim();
+  if (!script) return;
+  const btn = document.getElementById('generateBtn');
+  const errorBox = document.getElementById('errorBox');
+  const progressSection = document.getElementById('progressSection');
+  const resultSection = document.getElementById('resultSection');
+  btn.disabled = true;
+  errorBox.classList.remove('visible');
+  resultSection.classList.remove('visible');
+  progressSection.classList.add('visible');
+  setStep(1);
+  try {
+    const response = await fetch('/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ script })
+    });
+    await delay(1500); setStep(2);
+    await delay(2000); setStep(3);
+    await delay(2000); setStep(4);
+    const data = await response.json();
+    if (!response.ok || data.error) throw new Error(data.error || 'حصل خطأ');
+    setStep(5);
+    await delay(500);
+    document.getElementById('resultDesc').textContent = `${data.scenes_count} مشهد — جاهز للرفع على يوتيوب`;
+    document.getElementById('downloadBtn').href = data.download_url;
+    resultSection.classList.add('visible');
+    progressSection.classList.remove('visible');
+  } catch (err) {
+    errorBox.textContent = `❌ ${err.message}`;
+    errorBox.classList.add('visible');
+    progressSection.classList.remove('visible');
+  } finally {
+    btn.disabled = false;
+  }
+}
+function setStep(num) {
+  const progress = (num / 5) * 100;
+  document.getElementById('progressBar').style.width = progress + '%';
+  for (let i = 1; i <= 5; i++) {
+    const el = document.getElementById(`step${i}`);
+    el.classList.remove('active', 'done');
+    if (i < num) el.classList.add('done');
+    else if (i === num) el.classList.add('active');
+  }
+}
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+        </html>
