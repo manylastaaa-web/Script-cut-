@@ -46,7 +46,7 @@ Rules:
 - text is the narration for that scene only"""
 
     response = client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         max_tokens=2000,
         messages=[{"role": "user", "content": prompt}]
     )
@@ -58,8 +58,7 @@ def download_pexels_clip(keyword, duration, output_path):
     headers = {"Authorization": PEXELS_API_KEY}
     params = {"query": keyword, "per_page": 5, "min_duration": duration}
     r = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
-    data = r.json()
-    if not data.get("videos"):
+    data = r.json(model if not data.get("videos"):
         params["query"] = "nature"
         r = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
         data = r.json()
