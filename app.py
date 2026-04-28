@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template, send_file
-from openai import OpenAI
+from groq import Groq
 import requests
 import os
 import json
@@ -11,7 +11,7 @@ app = Flask(__name__)
 
 PEXELS_API_KEY = os.environ.get("PEXELS_API_KEY")
 ELEVENLABS_API_KEY = os.environ.get("ELEVENLABS_API_KEY")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
 TEMP_DIR = Path("temp")
 TEMP_DIR.mkdir(exist_ok=True)
@@ -19,7 +19,7 @@ OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 def analyze_script(script_text):
-    client = OpenAI(api_key=OPENAI_API_KEY)
+    client = Groq(api_key=GROQ_API_KEY)
     prompt = f"""You are a professional video editor AI. Analyze this YouTube script and return ONLY a JSON object (no markdown, no backticks).
 
 Script:
@@ -46,7 +46,7 @@ Rules:
 - text is the narration for that scene only"""
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="llama3-70b-8192",
         max_tokens=2000,
         messages=[{"role": "user", "content": prompt}]
     )
