@@ -55,16 +55,19 @@ Script: """ + script_text
 
 def download_pexels_clip(keyword, duration, output_path):
     headers = {"Authorization": PEXELS_API_KEY}
-    params = {"query": keyword, "per_page": 5, "min_duration": duration}
-    r = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
-    data = r.json()
-    if not data.get("videos"):
-        params["query"] = "nature"
+    keywords_to_try = [keyword, "news", "city", "nature", "people"]
+    video_url = None
+    for kw in keywords_to_try:
+        params = {"query": kw, "per_page": 5}
         r = requests.get("https://api.pexels.com/videos/search", headers=headers, params=params)
         data = r.json()
-    video = data["videos"][0]
-    video_files = sorted(video["video_files"], key=lambda x: x.get("width", 0), reverse=True)
-    video_url = video_files[0]["link"]
+        videos = data.get("videos", [])
+        if videos:
+            video_files = sorted(videos[0]["video_files"], key=lambda x: x.get("width", 0), reverse=True)
+            video_url = video_files[0]["link"]
+            break
+    if not video_url:
+        raise Exception("Pexels: no videos found")
     r = requests.get(video_url, stream=True)
     with open(output_path, "wb") as f:
         for chunk in r.iter_content(chunk_size=8192):
