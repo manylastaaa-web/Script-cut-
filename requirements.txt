@@ -1,4 +1,5 @@
 flask==3.0.0
-groq==0.9.0
+groq==0.4.2
 requests==2.31.0
 gunicorn==21.2.0
+httpx==0.24.1
